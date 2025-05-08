@@ -139,7 +139,7 @@ def login():
                         FROM
                             `{database_c_name}` a
                         WHERE
-                            a.`user_name` = {user_name}"""
+                            a.`userid` = {user_name}"""
         data = db.execute_query(base_sql)
         pwd_in_database = data[0]['password']
 
@@ -150,7 +150,7 @@ def login():
                             FROM 
                             `{database_c_name}` a
                             WHERE 
-                            a.`user_name` = {user_name}"""
+                            a.`userid` = {user_name}"""
             
             user_info_data = db.execute_query(user_info_sql)
             return jsonify({"data":user_info_data[0],"code":1,"message":'ok'})

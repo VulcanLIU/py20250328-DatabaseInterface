@@ -1,14 +1,10 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
 from database import Database
-import os
 import numpy as np
 
-app = Flask(__name__)
-CORS(app, origins=["http://192.168.192.1:5173"])  # 限制为前端域名
+data_bp = Blueprint('data', __name__)
 
-# 获取数据 API
-@app.route('/api/data', methods=['GET'])
+@data_bp.route('/data', methods=['GET'])
 def get_data():
     db = Database()
     try:
@@ -31,8 +27,8 @@ def get_data():
     finally:
         db.close()
 
-# 写入数据 API
-@app.route('/api/data', methods=['POST'])
+
+@data_bp.route('/data', methods=['POST'])
 def add_data():
     #获取Json文件并转换为数组
     content = request.json
@@ -41,7 +37,6 @@ def add_data():
 
     db = Database()
     try:
-
         if not content:
             return jsonify({"success": False, "error": "Content required"}), 400
             
@@ -54,7 +49,3 @@ def add_data():
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         db.close()
-
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)  # 生产环境应关闭debug
