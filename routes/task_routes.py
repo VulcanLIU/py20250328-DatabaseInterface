@@ -18,4 +18,19 @@ def gettaskinfo():
     name = input_args[0]
     userid = input_args[1]
 
+    try:
+        #打开数据库
+        db = Database()
 
+        task_info_sql  = f"""SELECT a.*
+                    FROM 
+                    `{database}` a
+                    WHERE
+                    a.`responser` = '{name}'"""
+        
+        task_info_data = db.execute_query(task_info_sql)
+        return jsonify({"data":task_info_data,"code":1,"message":'ok'})
+    except Exception as e:
+        return jsonify({"data":'',"error":str(e)}),500
+    finally:
+        db.close()
