@@ -1,0 +1,13 @@
+
+SELECT
+a.*,
+b.MATERIALCODE AS 物料编码,
+CASE
+    WHEN b.库存数量 IS NOT NULL AND b.库存数量 > 0  THEN
+    '是'
+    ELSE
+    '否'
+END AS 是否到货
+FROM
+{{ database_a }} a
+LEFT JOIN (SELECT B.CUSTOMFIELD9, ANY_VALUE (B.KCYE) AS 库存数量,ANY_VALUE (B.MATERIALCODE) AS MATERIALCODE FROM {{ database_b }} B GROUP BY CUSTOMFIELD9) b ON a.`图号` = b.CUSTOMFIELD9

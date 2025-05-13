@@ -17,15 +17,12 @@ def get_perchase_data():
         database_b = Config.DATABASE_B
         # 原实现逻辑...
         # 基础SQL
-        base_sql = f"""  SELECT 
-                        a.*,COALESCE(b.`申报批次`,'未申报')AS`申报批次`,COALESCE(b.`是否到货`, '否') AS `是否到货`
-                        FROM
-                        `{database_a}` a
-                        LEFT JOIN
-                        `{database_b}` b
-                        ON 
-                        a.`清单编号` = b.`物料编号`"""
-        
+        sql_path = 'routes/sql/purchase_data.sql'
+        with open(sql_path, 'r', encoding='utf-8') as f:
+            _base_sql = f.read()
+        base_sql = _base_sql.replace('{{ database_a }}', database_a)\
+                           .replace('{{ database_b }}', database_b)
+
         # 获取查询参数（如：/api/data?name=刘展鹏）
         for index in range(len(args)):
             object_array[index] = request.args.get(args[index])
@@ -39,7 +36,8 @@ def get_perchase_data():
                     if _counter > 0:
                         add_sql =  f"{add_sql} &&"
                     add_sql = f"{add_sql} a.`{column_name[index]}` = '{object_array[index]}'"
-                    _counter = _counter+1      
+                    _counter = _counter+1
+        print(base_sql+add_sql)      
         data = db.execute_query(base_sql+add_sql)
             
         return jsonify({"success": True, "data": data})
