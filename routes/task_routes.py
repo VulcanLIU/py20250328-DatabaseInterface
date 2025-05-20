@@ -1,3 +1,5 @@
+import logger  # 日志重定向
+
 from flask import Blueprint, request, jsonify
 import numpy as np
 from database import Database

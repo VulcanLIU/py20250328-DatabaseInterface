@@ -23,22 +23,29 @@ def get_perchase_data():
         base_sql = _base_sql.replace('{{ database_a }}', database_a)\
                            .replace('{{ database_b }}', database_b)
 
+        # 拆分出GROUP BY部分
+        if 'GROUP BY' in base_sql:
+            sql_main, sql_group = base_sql.split('GROUP BY', 1)
+            sql_group = 'GROUP BY' + sql_group
+        else:
+            sql_main, sql_group = base_sql, ''
+
         # 获取查询参数（如：/api/data?name=刘展鹏）
         for index in range(len(args)):
             object_array[index] = request.args.get(args[index])
-            
-        add_sql = ""
-        if object_array.count(None) != len(object_array):
-            add_sql = " WHERE"
-            _counter=0
-            for index in range(len(object_array)):
-                if object_array[index] != None and object_array[index] != '':
-                    if _counter > 0:
-                        add_sql =  f"{add_sql} &&"
-                    add_sql = f"{add_sql} a.`{column_name[index]}` = '{object_array[index]}'"
-                    _counter = _counter+1
-        print(base_sql+add_sql)      
-        data = db.execute_query(base_sql+add_sql)
+
+    
+        # 动态拼接WHERE
+        where_clauses = []
+        for index, value in enumerate(object_array):
+            if value:
+                where_clauses.append(f"a.`{column_name[index]}` = '{value}'")
+        if where_clauses:
+            sql_main += " WHERE " + " AND ".join(where_clauses)
+
+        final_sql = sql_main + ' ' + sql_group
+        print(final_sql)      
+        data = db.execute_query(final_sql)
             
         return jsonify({"success": True, "data": data})
     except Exception as e:

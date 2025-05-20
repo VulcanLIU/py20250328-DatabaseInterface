@@ -1,3 +1,5 @@
+import logger  # 日志重定向
+
 from flask import Flask
 from flask_cors import CORS
 from config import Config
@@ -16,4 +18,5 @@ app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(task_bp, url_prefix='/api')
 
 if __name__ == '__main__':
+    logger.sys.stdout.write("111")
     app.run(host='0.0.0.0', port=5000, debug=False)
