@@ -100,8 +100,13 @@ def get_product_schedule_data():
                     stage_complete_ratio[stage] = stats[stage][1] / (stats[stage][0] + stats[stage][1])
                 else:
                     stage_complete_ratio[stage] = 0
-        
-        return jsonify({"success": True, "data": data})
+        # 返回结果
+        return jsonify({
+            "success": True,
+            "stages_select": stages_select,  # 你的数组
+            "count_stages_current": count_stages_current,  # 第一个字典
+            "stage_complete_ratio": stage_complete_ratio   # 第二个字典
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
