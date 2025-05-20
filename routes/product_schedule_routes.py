@@ -24,7 +24,7 @@ def get_product_schedule_data():
         DATABASE_product_schedule_fixmethod = Config.DATABASE_product_schedule_fixmethod
         # 原实现逻辑...
         # 基础SQL
-        sql_path = 'routes/sql/prodcut_schedule.sql'
+        sql_path = 'routes/sql/product_schedule.sql'
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -54,9 +54,9 @@ def get_product_schedule_data():
         #创建包含所有阶段的数组
         stages_origin = []
         for item in data_fixmethod:
-            for stage in item:
-                if stage not in stages_origin:
-                    stages_origin.append(stage)
+            d = item.get('stage')
+            if d not in stages_origin:
+                stages_origin.append(d)
         #包含该修理方式选择的阶段的数组 需要return给前端
         stages_select = []
         #统计当前阶段的数组
@@ -68,8 +68,6 @@ def get_product_schedule_data():
         stats = {stage: {0: 0, 1: 0, 2: 0} for stage in stages_origin}
         # 初始化当前阶段的计数器 需返回给前端 
         count_stages_current = {stage: 0 for stage in stages_select}
-        # 初始化已选择阶段的完成比率 需返回给前端
-        stage_complete_ratio = {stage: 0 for stage in stages_select}
         # 遍历数据并统计
         for item in data:
             for stage in stages_origin:
@@ -81,7 +79,9 @@ def get_product_schedule_data():
         for stage in stages_origin:
             if stats[stage][2] == 0:
                 stages_select.append(stage)
-        
+        # 初始化已选择阶段的完成比率 需返回给前端
+        stage_complete_ratio = {stage: 0 for stage in stages_select}
+        current = 0
         for item in data:
             for stage in stages_select:
                 value = item.get(stage)
@@ -93,19 +93,27 @@ def get_product_schedule_data():
         #统计当前阶段的数量
         # 遍历数据并统计当前阶段的数量
         for stage in stages_current:
-            count_stages_current[stage] = count_stages_current.get(stage) + 1
+                count_stages_current[stage] = count_stages_current.get(stage, 0) + 1
         for stage in stages_select:
-            for stats in stats[stage]:
-                if stats[stage][1] != 0:
-                    stage_complete_ratio[stage] = stats[stage][1] / (stats[stage][0] + stats[stage][1])
-                else:
-                    stage_complete_ratio[stage] = 0
+            if stats[stage][1] != 0:
+                stage_complete_ratio[stage] = stats[stage][1] / (stats[stage][0] + stats[stage][1])
+            else:
+                stage_complete_ratio[stage] = 0
+
+        #前端友好，转成数组
+        count_stages_current_full  = {stage: 0 for stage in stages_select}
+        for stage in stages_select:
+            count_stages_current_full[stage] = count_stages_current.get(stage, 0)        
+        count_stages_current_array = list(count_stages_current_full.values())
+        stage_complete_ratio_array = list(stage_complete_ratio.values())
+            
+
         # 返回结果
         return jsonify({
             "success": True,
             "stages_select": stages_select,  # 你的数组
-            "count_stages_current": count_stages_current,  # 第一个字典
-            "stage_complete_ratio": stage_complete_ratio   # 第二个字典
+            "count_stages_current_array": count_stages_current_array,  
+            "stage_complete_ratio_array": stage_complete_ratio_array   
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

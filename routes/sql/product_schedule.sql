@@ -1,2 +1,2 @@
 SELECT a.* 
-FROM {{database_a}} a
+FROM {{ database_a }} a
