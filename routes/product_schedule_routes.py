@@ -121,4 +121,22 @@ def get_product_schedule_data():
         db.close()
 
 
-
+@product_schedule_bp.route('/product_schedule_all', methods=['GET'])
+def get_product_schedule_data_all():
+    db = Database()
+    try:
+        DATABASE_product_schedule = Config.DATABASE_product_schedule
+        sql_path = 'routes/sql/product_schedule.sql'
+        with open(sql_path, 'r', encoding='utf-8') as f:
+            _base_sql = f.read()
+        base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
+        # 不加任何where条件，直接查全部
+        data = db.execute_query(base_sql)
+        return jsonify({
+            "success": True,
+            "data": data
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        db.close()
