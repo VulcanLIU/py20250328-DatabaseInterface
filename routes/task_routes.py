@@ -21,7 +21,7 @@ def gettaskinfo():
     key = input_keys[0]
     name = input_args[0]
     userid = input_args[1]
-
+    isArchived = input_args[2]
     try:
         #打开数据库
         db = Database()
@@ -30,7 +30,7 @@ def gettaskinfo():
                     FROM 
                     `{database}` a
                     WHERE
-                    a.`{key}` = '{name}'"""
+                    a.`{key}` = '{name}' and a.is_archived = {isArchived}"""
         
         task_info_data = db.execute_query(task_info_sql)
         return jsonify({"data":task_info_data,"code":1,"message":'ok'})
@@ -72,3 +72,39 @@ def upsertTaskInfo():
     finally:
         db.close()
 
+@task_bp.route('/updateTaskInfo', methods=['POST'])
+def updateTaskInfo():
+    db = Database()
+    try:
+        database_task = Config.DATABASE_TASKS
+
+        #获取客户端发来的数据
+        data = request.get_json()
+        print(data)
+        #字段映射
+        sql = f"SHOW COLUMNS FROM {database_task}"
+        fields_info = db.execute_query(sql)
+        fields = [row['Field'] for row in fields_info]
+        values = [data.get(f, None) for f in fields]
+
+        # 假设ID字段名为'id'
+        if 'id' not in data or data['id'] is None:
+            return jsonify({"success": False, "error": "缺少ID字段"}), 400
+
+        # 构建SET部分
+        set_clause = ', '.join([f"`{f}`=%s" for f in fields if f != 'id'])
+        update_values = [data.get(f, None) for f in fields if f != 'id']
+
+        update_sql = f"UPDATE `{database_task}` SET {set_clause} WHERE `id`=%s"
+        params = update_values + [data['id']]
+        db.execute_query(update_sql, params)
+
+        # 查询更新后的taskInfo
+        select_sql = f"SELECT * FROM `{database_task}` WHERE `id`=%s"
+        task_info = db.execute_query(select_sql, [data['id']])
+
+        return jsonify({"success": True, "message": "更新成功", "taskInfo": task_info})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        db.close()
