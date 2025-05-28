@@ -73,3 +73,18 @@ def onUserConnected():
         return jsonify({"data":'',"code":-1,"error":str(e)}),500
     finally:
         db.close()
+
+@auth_bp.route('/getAllUsersList', methods=['GET'])
+def getAllUsersList():
+    db = Database()
+    try:
+        database = Config.DATABASE_ACCOUNTS
+        #查询所有用户信息
+        sql = f"""SELECT a.userid, a.name,a.role,a.is_connected,a.organization
+                FROM `{database}` a"""
+        data = db.execute_query(sql)
+        return jsonify({"data":data,"code":1,"message":'ok'})
+    except Exception as e:
+        return jsonify({"data":'',"code":-1,"error":str(e)}),500
+    finally:
+        db.close()
