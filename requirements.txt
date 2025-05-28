@@ -4,3 +4,4 @@ Flask_SocketIO==5.5.1
 numpy==1.24.4
 PyMySQL==1.1.1
 python-dotenv ==1.0.1
+Flask-SocketIO == 5.5.1
