@@ -35,6 +35,8 @@ def get_product_schedule_data():
             object_array[index] = request.args.get(args[index])
 
         # 拼接SQL条件
+        # 如果object_array中有非None值，则添加WHERE条件
+        # 否则不添加条件
         add_sql = ""
         if object_array.count(None) != len(object_array):
             add_sql = " WHERE"
@@ -58,7 +60,7 @@ def get_product_schedule_data():
             if d not in stages_origin:
                 stages_origin.append(d)
         stages_select = []
-        stages_current = []
+        stages_current = [item.get('当前维修进度') for item in data if item.get('当前维修进度')]
         stats = {stage: {0: 0, 1: 0, 2: 0} for stage in stages_origin}
         count_stages_current = {stage: 0 for stage in stages_select}
 
@@ -76,21 +78,11 @@ def get_product_schedule_data():
 
         # 计算每个阶段的完成比率
         stage_complete_ratio = {stage: 0 for stage in stages_select}
-        current = 0
-        for item in data:
-            for stage in stages_select:
-                value = item.get(stage)
-                if isinstance(value, int) and value in (0, 1):
-                    current += value
-            if current <= len(stages_select) - 1:
-                stages_current.append(stages_select[current])
-            else:
-                stages_current.append('已完工')
-            current = 0
 
         # 统计当前阶段数量
         for stage in stages_current:
             count_stages_current[stage] = count_stages_current.get(stage, 0) + 1
+        # 计算每个阶段的完成比率
         for stage in stages_select:
             if stats[stage][1] != 0:
                 stage_complete_ratio[stage] = stats[stage][1] / (stats[stage][0] + stats[stage][1])
@@ -98,10 +90,12 @@ def get_product_schedule_data():
                 stage_complete_ratio[stage] = 0
 
         # 转为数组，便于前端展示
+        # 对当前阶段数量进行补全，填充0
         count_stages_current_full = {stage: 0 for stage in stages_select}
         for stage in stages_select:
             count_stages_current_full[stage] = count_stages_current.get(stage, 0)
         count_stages_current_array = list(count_stages_current_full.values())
+
         stage_complete_ratio_array = list(stage_complete_ratio.values())
 
         # 输出结果
@@ -149,50 +143,6 @@ def product_information_all():
         db.close()
 
 # =========================
-# 阶段三：按修理方式和阶段查询产品
-# =========================
-# 输入：GET请求，参数为修理方式、当前阶段
-# 输出：符合条件的产品信息（列表）
-@product_schedule_bp.route('/product_information_part', methods=['GET'])
-def get_product_information_part():
-    db = Database()
-    args = ['修理方式', '当前阶段']
-    column_name = ['修理方式', '当前阶段']
-    object_array = [None]*len(args)
-
-    try:
-        DATABASE_product_schedule = Config.DATABASE_product_schedule
-        sql_path = 'routes/sql/product_schedule.sql'
-        with open(sql_path, 'r', encoding='utf-8') as f:
-            _base_sql = f.read()
-        base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
-        for index in range(len(args)):
-            object_array[index] = request.args.get(args[index])
-
-        add_sql = ""
-        if object_array.count(None) != len(object_array):
-            add_sql = " WHERE"
-            _counter = 0
-            for index in range(len(object_array)):
-                if object_array[index] is not None and object_array[index] != '':
-                    if _counter > 0:
-                        add_sql = f"{add_sql} AND"
-                    add_sql = f"{add_sql} a.`{column_name[index]}` = '{object_array[index]}'"
-                    _counter += 1
-        #print(base_sql + add_sql)
-        data = db.execute_query(base_sql + add_sql)
-        #print(data)
-
-        return jsonify({
-            "success": True,
-            "data": data
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        db.close()
-
-# =========================
 # 阶段四：增加或更新产品信息
 # =========================
 # 输入：POST请求，body为产品信息JSON
@@ -203,17 +153,29 @@ def add_product_information():
     try:
         DATABASE_product_schedule = Config.DATABASE_product_schedule
 
+        
+
         # 获取前端传来的产品信息
         data = request.get_json()
         #print(data)
+
+        sql_path = 'routes/sql/product_schedule.sql'
+        with open(sql_path, 'r', encoding='utf-8') as f:
+            _base_sql = f.read()
+        base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
+        add_sql_1 = "\nWHERE `产品id` = {}".format(data.get('产品id')) if data.get('产品id') else ""
+        base_sql = base_sql + add_sql_1
+        data_origin = db.execute_query(base_sql)
+
+
         # 获取表字段
         sql = f"SHOW COLUMNS FROM {DATABASE_product_schedule}"
         fields_info = db.execute_query(sql)
         fields = [row['Field'] for row in fields_info]
 
         # 检查主键字段（假设为“序号”）必须有值
-        if not data.get('序号'):
-            return jsonify({"success": False, "error": "主键（序号）不能为空"}), 400
+        if not data.get('产品id'):
+            return jsonify({"success": False, "error": "主键（产品id）不能为空"}), 400
 
         # 插入时所有字段都要有（主键和必填字段不能为空，否则插入会报错）
         values = [data.get(f, None) for f in fields]
@@ -226,10 +188,13 @@ def add_product_information():
         # 更新时只更新有值的字段
         update_fields = ', '.join(
             f"`{f}`=VALUES(`{f}`)" for f, v in zip(fields, values)
-            if f != "序号" and v is not None and v != ""
+            if f != "产品id" and v is not None and v != ""
         )
         # 获取前端传来的“当前状态”字段名
-        current_status_field = data.get('当前状态')
+        if data_origin and isinstance(data_origin, list):
+            current_status_field = data_origin[0].get('当前维修进度')
+        else:
+            current_status_field = None
         add_sql = ""
         if current_status_field:
             add_sql = f", `{current_status_field}`=1"
@@ -274,8 +239,8 @@ def delete_product_information():
 
         # 获取前端传来的产品id
         data = request.get_json()
-        #print(data)
-        product_id = data.get('序号')
+        print(data)
+        product_id = data.get('产品id')
 
         if not product_id:
             return jsonify({"success": False, "error": "产品id不能为空"}), 400
@@ -286,7 +251,7 @@ def delete_product_information():
             delete_sql_template = f.read()
         delete_sql = delete_sql_template\
             .replace('{{ table_name }}', DATABASE_product_schedule) \
-            .replace('{{ key_field }}', '序号')\
+            .replace('{{ key_field }}', '产品id')\
             .replace('{{ key_value }}', f'"{product_id}"')
         print(delete_sql)
         db.execute_query(delete_sql)
