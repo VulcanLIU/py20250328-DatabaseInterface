@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from database import Database
-from config import Config
+from config import Config,current_dir
 
+import os
 purchase_bp = Blueprint('purchase', __name__)
 
 @purchase_bp.route('/perchase_data', methods=['GET'])
@@ -17,7 +18,7 @@ def get_perchase_data():
         database_b = Config.DATABASE_B
         # 原实现逻辑...
         # 基础SQL
-        sql_path = 'routes/sql/purchase_data.sql'
+        sql_path =os.path.join(current_dir, 'routes/sql/purchase_data.sql')
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', database_a)\
@@ -91,7 +92,7 @@ def upsert_part():
         values = [data.get(f, None) for f in fields]
 
         #读取SQL语言并结合数据进行填充
-        upsert_sql_path = 'routes/sql/upsert_parts.sql'
+        upsert_sql_path = os.path.join(current_dir,'routes/sql/upsert_parts.sql')
         with open(upsert_sql_path, 'r', encoding='utf-8') as f:
             upsert_sql_template = f.read()
         upsert_sql = upsert_sql_template \

@@ -1,7 +1,8 @@
+import os
 # 产品进度日志相关接口
 from flask import Blueprint, request, jsonify
 from database import Database
-from config import Config
+from config import Config,current_dir
 
 # 创建蓝图对象，注册到Flask主应用
 product_schedule_bp = Blueprint('product_schedule', __name__)
@@ -24,7 +25,7 @@ def get_product_schedule_data():
         DATABASE_product_schedule_fixmethod = Config.DATABASE_product_schedule_fixmethod
 
         # 读取SQL模板
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir,'routes/sql/product_schedule.sql')  
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -126,7 +127,7 @@ def product_information_all():
 
     try:
         DATABASE_product_schedule = Config.DATABASE_product_schedule
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir,'routes/sql/product_schedule.sql')
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -160,7 +161,7 @@ def add_product_information():
         data = request.get_json()
         #print(data)
 
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir, 'routes/sql/product_schedule.sql')
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -209,7 +210,7 @@ def add_product_information():
 
 
         # 读取upsert SQL模板并填充
-        upsert_sql_path = 'routes/sql/upsert_parts.sql'
+        upsert_sql_path = os.path.join(current_dir, 'routes/sql/upsert_parts.sql')
         with open(upsert_sql_path, 'r', encoding='utf-8') as f:
             upsert_sql_template = f.read()
         upsert_sql = upsert_sql_template \

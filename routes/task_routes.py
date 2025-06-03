@@ -1,10 +1,9 @@
-import logger  # 日志重定向
-
+import os
 from flask import Blueprint, request, jsonify
 
 import numpy as np
 from database import Database
-from config import Config
+from config import Config, current_dir
 
 from socketio_app import socketio  # 导入socketio实例
 
@@ -59,7 +58,7 @@ def upsertTaskInfo():
             values = [data.get(f, None) for f in fields]
 
             #读取SQL语言并结合数据进行填充
-            upsert_sql_path = 'routes/sql/upsert_parts.sql'
+            upsert_sql_path = os.path.join(current_dir,'routes/sql/upsert_parts.sql')
             with open(upsert_sql_path, 'r', encoding='utf-8') as f:
                 upsert_sql_template = f.read()
             upsert_sql = upsert_sql_template \
