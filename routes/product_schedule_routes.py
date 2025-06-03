@@ -73,7 +73,7 @@ def get_product_schedule_data():
 
         # 选出未完工的阶段
         for stage in stages_origin:
-            if stats[stage][2] == 0:
+            if stats[stage][2] < len(data):
                 stages_select.append(stage)
 
         # 计算每个阶段的完成比率
@@ -105,6 +105,7 @@ def get_product_schedule_data():
             "count_stages_current_array": count_stages_current_array,  # 当前阶段数量数组
             "stage_complete_ratio_array": stage_complete_ratio_array,  # 阶段完成比率数组
             "total_count": len(data)  # 总产品数
+            
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
