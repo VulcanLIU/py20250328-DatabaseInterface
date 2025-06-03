@@ -174,14 +174,12 @@ def add_product_information():
         fields_info = db.execute_query(sql)
         fields = [row['Field'] for row in fields_info]
 
-        # 检查主键字段（假设为“序号”）必须有值
-        if not data.get('产品id'):
-            return jsonify({"success": False, "error": "主键（产品id）不能为空"}), 400
-
         # 插入时所有字段都要有（主键和必填字段不能为空，否则插入会报错）
         values = [data.get(f, None) for f in fields]
         def sql_value(v):
             if v is None:
+                return 'NULL'
+            elif v == "":
                 return 'NULL'
             return f'"{v}"'
         values_placeholders = ','.join(sql_value(v) for v in values)
