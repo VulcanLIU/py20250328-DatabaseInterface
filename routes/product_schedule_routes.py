@@ -37,6 +37,8 @@ def get_product_schedule_data():
         # 拼接SQL条件
         # 如果object_array中有非None值，则添加WHERE条件
         # 否则不添加条件
+        if object_array[0] == '':
+            object_array = [None] * len(object_array)
         add_sql = ""
         if object_array.count(None) != len(object_array):
             add_sql = " WHERE"
