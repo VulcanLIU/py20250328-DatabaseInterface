@@ -48,3 +48,43 @@ def login():
         return jsonify({"data":'',"code":-1,"error":str(e)}),500
     finally:
         db.close()
+
+@auth_bp.route('/user_connected', methods=['POST'])
+def onUserConnected():
+    #发来的数据格式json={"userid":userid,"is_connected":1}
+    db = Database()
+
+    try:
+        database = Config.DATABASE_ACCOUNTS
+        #获取请求数据
+        data = request.get_json()
+        #解析请求数据中的字段与数据
+        userid = data.get('userid')
+        is_connected = data.get('is_connected')
+
+        #对数据库中相应条目进行更新
+        update_sql = f"""UPDATE `{database}` 
+                        SET `is_connected` = {is_connected}
+                        WHERE `userid` = '{userid}'"""
+        print(update_sql)
+        result = db.execute_query(update_sql)
+        return jsonify({"data":'result',"code":1,"message":'ok'})
+    except Exception as e:
+        return jsonify({"data":'',"code":-1,"error":str(e)}),500
+    finally:
+        db.close()
+
+@auth_bp.route('/getAllUsersList', methods=['GET'])
+def getAllUsersList():
+    db = Database()
+    try:
+        database = Config.DATABASE_ACCOUNTS
+        #查询所有用户信息
+        sql = f"""SELECT a.userid, a.name,a.role,a.is_connected,a.organization
+                FROM `{database}` a"""
+        data = db.execute_query(sql)
+        return jsonify({"data":data,"code":1,"message":'ok'})
+    except Exception as e:
+        return jsonify({"data":'',"code":-1,"error":str(e)}),500
+    finally:
+        db.close()

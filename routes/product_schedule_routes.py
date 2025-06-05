@@ -1,7 +1,8 @@
+import os
 # 产品进度日志相关接口
 from flask import Blueprint, request, jsonify
 from database import Database
-from config import Config
+from config import Config,current_dir
 
 # 创建蓝图对象，注册到Flask主应用
 product_schedule_bp = Blueprint('product_schedule', __name__)
@@ -24,7 +25,7 @@ def get_product_schedule_data():
         DATABASE_product_schedule_fixmethod = Config.DATABASE_product_schedule_fixmethod
 
         # 读取SQL模板
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir,'routes/sql/product_schedule.sql')  
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -40,7 +41,7 @@ def get_product_schedule_data():
         if object_array[0] == '':
             object_array = [None] * len(object_array)
         add_sql = ""
-        if object_array.count(None) != len(object_array):
+        if object_array and any(obj is not None and obj != '' for obj in object_array):
             add_sql = " WHERE"
             _counter = 0
             for index in range(len(object_array)):
@@ -75,7 +76,7 @@ def get_product_schedule_data():
 
         # 选出未完工的阶段
         for stage in stages_origin:
-            if stats[stage][2] == 0:
+            if stats[stage][2] < len(data):
                 stages_select.append(stage)
 
         # 计算每个阶段的完成比率
@@ -107,6 +108,7 @@ def get_product_schedule_data():
             "count_stages_current_array": count_stages_current_array,  # 当前阶段数量数组
             "stage_complete_ratio_array": stage_complete_ratio_array,  # 阶段完成比率数组
             "total_count": len(data)  # 总产品数
+            
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -127,7 +129,7 @@ def product_information_all():
 
     try:
         DATABASE_product_schedule = Config.DATABASE_product_schedule
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir,'routes/sql/product_schedule.sql')
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -161,7 +163,7 @@ def add_product_information():
         data = request.get_json()
         #print(data)
 
-        sql_path = 'routes/sql/product_schedule.sql'
+        sql_path = os.path.join(current_dir, 'routes/sql/product_schedule.sql')
         with open(sql_path, 'r', encoding='utf-8') as f:
             _base_sql = f.read()
         base_sql = _base_sql.replace('{{ database_a }}', DATABASE_product_schedule)
@@ -175,14 +177,12 @@ def add_product_information():
         fields_info = db.execute_query(sql)
         fields = [row['Field'] for row in fields_info]
 
-        # 检查主键字段（假设为“序号”）必须有值
-        if not data.get('产品id'):
-            return jsonify({"success": False, "error": "主键（产品id）不能为空"}), 400
-
         # 插入时所有字段都要有（主键和必填字段不能为空，否则插入会报错）
         values = [data.get(f, None) for f in fields]
         def sql_value(v):
             if v is None:
+                return 'NULL'
+            elif v == "":
                 return 'NULL'
             return f'"{v}"'
         values_placeholders = ','.join(sql_value(v) for v in values)
@@ -212,7 +212,7 @@ def add_product_information():
 
 
         # 读取upsert SQL模板并填充
-        upsert_sql_path = 'routes/sql/upsert_parts.sql'
+        upsert_sql_path = os.path.join(current_dir, 'routes/sql/upsert_parts.sql')
         with open(upsert_sql_path, 'r', encoding='utf-8') as f:
             upsert_sql_template = f.read()
         upsert_sql = upsert_sql_template \
